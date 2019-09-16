@@ -4,7 +4,7 @@
             [jsonista.core :as json]
             [google-drive-file-uploader.utils :as utils]))
 
-(defn upload-file [file-path access-token]
+(defn upload-file-simple [file-path access-token]
   (let [url (config/file-upload-url)
         {:keys [status body] :as response} (http/post url {:headers          {"Authorization" (str "Bearer " access-token)
                                                                               "Content-Type"  "application/vnd.android.package-archive"}
@@ -14,6 +14,25 @@
       200 true
       response)))
 
+(defn upload-file-multipart [file-path access-token]
+  (let [url (-> (config/file-upload-url)
+                (str "?uploadType=multipart"))
+        {:keys [status body] :as response} (http/post url {:headers          {"Authorization" (str "Bearer " access-token)}
+                                                           :multipart        [{:name      "metadata"
+                                                                               :content   (-> {:name "capture-debug.apk"}
+                                                                                              json/write-value-as-string)
+                                                                               :mime-type "application/json"
+                                                                               :encoding  "UTF-8"}
+                                                                              {:name      "file"
+                                                                               :content   (clojure.java.io/file file-path)
+                                                                               :mime-type "application/vnd.android.package-archive"
+                                                                               :encoding  "UTF-8"}]
+                                                           :throw-exceptions false})]
+    (condp = status
+      200 (do
+            (println response)
+            true)
+      response)))
 
 (defn authorization-token [refresh-token]
   (let [url           (config/new-access-token-url)
@@ -36,8 +55,8 @@
 (defn orchestrate []
   (try
     (->> (config/refresh-token)
-        authorization-token
-        (upload-file (config/file-directory)))
+         authorization-token
+         (upload-file-multipart (config/file-directory)))
     (catch Exception e
       (println e))))
 
