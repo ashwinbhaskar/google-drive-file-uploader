@@ -14,4 +14,5 @@
 
                  ;;time
                  [clojure.java-time "0.3.2"]]
+  :main google-drive-file-uploader.core
   :repl-options {:init-ns google-drive-file-uploader.core})
