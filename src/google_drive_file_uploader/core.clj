@@ -3,7 +3,8 @@
             [clj-http.client :as http]
             [jsonista.core :as json]
             [google-drive-file-uploader.utils :as utils]
-            [java-time :as t]))
+            [java-time :as t])
+  (:gen-class))
 
 (defn upload-file-simple [file-path access-token]
   (let [url (config/file-upload-url)
@@ -42,11 +43,10 @@
                                                                                :mime-type "application/vnd.android.package-archive"
                                                                                :encoding  "UTF-8"}]
                                                            :throw-exceptions false})]
+    (println response)
     (condp = status
-      200 (do
-            (println response)
-            true)
-      response)))
+      200 true
+      false)))
 
 (defn authorization-token [refresh-token]
   (let [url           (config/new-access-token-url)
@@ -74,6 +74,7 @@
     (catch Exception e
       (println e))))
 
-(defn -main [path-of-file-to-upload & args]
+(defn -main [path-of-file-to-upload & _]
+  (println (str "The path of the file to be uploaded is " path-of-file-to-upload))
   (orchestrate path-of-file-to-upload))
 
