@@ -66,14 +66,14 @@
               :access-token)
       (throw (ex-info (str "Error retrieving authorization-token" {:status status
                                                                    :body   body}) {})))))
-(defn orchestrate []
+(defn orchestrate [path-of-file-to-upload]
   (try
     (->> (config/refresh-token)
          authorization-token
-         (upload-file-multipart (config/parent-directory-id) (config/file-directory)))
+         (upload-file-multipart (config/parent-directory-id) path-of-file-to-upload))
     (catch Exception e
       (println e))))
 
-(defn -main []
-  (orchestrate))
+(defn -main [path-of-file-to-upload & args]
+  (orchestrate path-of-file-to-upload))
 
