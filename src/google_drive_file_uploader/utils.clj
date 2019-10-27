@@ -1,6 +1,7 @@
 (ns google-drive-file-uploader.utils
   (:require [clojure.walk :refer [postwalk]]
-            [camel-snake-kebab.core :as csk]))
+            [camel-snake-kebab.core :as csk]
+            [java-time :as t]))
 
 (defn snake-caseize-if-keyword [x]
   (if (keyword? x)
@@ -20,5 +21,9 @@
                 form))
             map))
 
+(defn formatted-date-time []
+  (t/format "MMM:dd:uuuu:HH:mm"
+            (t/zoned-date-time (t/instant)
+                               (t/zone-id))))
 
 

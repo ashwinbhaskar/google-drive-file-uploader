@@ -10,5 +10,8 @@
 
                  ;;json
                  [metosin/jsonista "0.2.4"]
-                 [camel-snake-kebab "0.4.0"]]
+                 [camel-snake-kebab "0.4.0"]
+
+                 ;;time
+                 [clojure.java-time "0.3.2"]]
   :repl-options {:init-ns google-drive-file-uploader.core})

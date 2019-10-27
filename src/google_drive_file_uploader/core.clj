@@ -2,7 +2,8 @@
   (:require [google-drive-file-uploader.config :as config]
             [clj-http.client :as http]
             [jsonista.core :as json]
-            [google-drive-file-uploader.utils :as utils]))
+            [google-drive-file-uploader.utils :as utils]
+            [java-time :as t]))
 
 (defn upload-file-simple [file-path access-token]
   (let [url (config/file-upload-url)
@@ -14,12 +15,25 @@
       200 true
       response)))
 
-(defn upload-file-multipart [file-path access-token]
-  (let [url (-> (config/file-upload-url)
-                (str "?uploadType=multipart"))
+(defn get-files [access-token]
+  (let [url (config/get-files-url)
+        {:keys [status body] :as response} (http/get url {:headers          {"Authorization" (str "Bearer " access-token)}
+                                                          :throw-exceptions false})]
+    (condp = status
+      200 (do
+            (println response)
+            true)
+      response)))
+
+(defn upload-file-multipart [folder-hierarchy file-path access-token]
+  (let [url     (-> (config/file-upload-url)
+                    (str "?uploadType=multipart"))
+        parents (clojure.string/split folder-hierarchy #"/")
         {:keys [status body] :as response} (http/post url {:headers          {"Authorization" (str "Bearer " access-token)}
                                                            :multipart        [{:name      "metadata"
-                                                                               :content   (-> {:name "capture-debug.apk"}
+                                                                               :content   (-> {:name    (str (utils/formatted-date-time)
+                                                                                                             "capture-debug.apk")
+                                                                                               :parents parents}
                                                                                               json/write-value-as-string)
                                                                                :mime-type "application/json"
                                                                                :encoding  "UTF-8"}
@@ -56,7 +70,7 @@
   (try
     (->> (config/refresh-token)
          authorization-token
-         (upload-file-multipart (config/file-directory)))
+         (upload-file-multipart (config/parent-directory-id) (config/file-directory)))
     (catch Exception e
       (println e))))
 

@@ -22,3 +22,9 @@
 
 (defn client-secret []
   (:client-secret config))
+
+(defn get-files-url []
+  (:get-files-url config))
+
+(defn parent-directory-id []
+  (:parent-directory-id config))
