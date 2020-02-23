@@ -1,80 +1,52 @@
 (ns google-drive-file-uploader.core
-  (:require [google-drive-file-uploader.config :as config]
-            [clj-http.client :as http]
-            [jsonista.core :as json]
-            [google-drive-file-uploader.utils :as utils]
-            [java-time :as t])
+  (:require [google-drive-file-uploader.drive :as drive]
+            [cli-matic.core :refer [run-cmd]]
+            [google-drive-file-uploader.utils :as utils])
+  (:import (lockfix LockFix))
   (:gen-class))
 
-(defn upload-file-simple [file-path access-token]
-  (let [url (config/file-upload-url)
-        {:keys [status body] :as response} (http/post url {:headers          {"Authorization" (str "Bearer " access-token)
-                                                                              "Content-Type"  "application/vnd.android.package-archive"}
-                                                           :body             (clojure.java.io/file file-path)
-                                                           :throw-exceptions false})]
-    (condp = status
-      200 true
-      response)))
+(defmacro locking*                                          ;; patched version of clojure.core/locking to workaround GraalVM unbalanced monitor issue
+  "Executes exprs in an implicit do, while holding the monitor of x.
+  Will release the monitor of x in all circumstances."
+  {:added "1.0"}
+  [x & body]
+  `(let [lockee# ~x]
+     (LockFix/lock lockee# (^{:once true} fn* [] ~@body))))
 
-(defn get-files [access-token]
-  (let [url (config/get-files-url)
-        {:keys [status body] :as response} (http/get url {:headers          {"Authorization" (str "Bearer " access-token)}
-                                                          :throw-exceptions false})]
-    (condp = status
-      200 (do
-            (println response)
-            true)
-      response)))
+(defn dynaload ;; patched version of clojure.spec.gen.alpha/dynaload to use patched locking macro
+  [s]
+  (let [ns (namespace s)]
+    (assert ns)
+    (locking* #'clojure.spec.gen.alpha/dynalock
+              (require (symbol ns)))
+    (let [v (resolve s)]
+      (if v
+        @v
+        (throw (RuntimeException. (str "Var " s " is not on the classpath")))))))
 
-(defn upload-file-multipart [folder-hierarchy file-path access-token]
-  (let [url     (-> (config/file-upload-url)
-                    (str "?uploadType=multipart"))
-        parents (clojure.string/split folder-hierarchy #"/")
-        {:keys [status body] :as response} (http/post url {:headers          {"Authorization" (str "Bearer " access-token)}
-                                                           :multipart        [{:name      "metadata"
-                                                                               :content   (-> {:name    (str (utils/formatted-date-time)
-                                                                                                             "capture-debug.apk")
-                                                                                               :parents parents}
-                                                                                              json/write-value-as-string)
-                                                                               :mime-type "application/json"
-                                                                               :encoding  "UTF-8"}
-                                                                              {:name      "file"
-                                                                               :content   (clojure.java.io/file file-path)
-                                                                               :mime-type "application/vnd.android.package-archive"
-                                                                               :encoding  "UTF-8"}]
-                                                           :throw-exceptions false})]
-    (println response)
-    (condp = status
-      200 true
-      false)))
+(alter-var-root #'clojure.spec.gen.alpha/dynaload (constantly dynaload))
 
-(defn authorization-token [refresh-token]
-  (let [url           (config/new-access-token-url)
-        client-id     (config/client-id)
-        client-secret (config/client-secret)
-        {:keys [status body]} (http/post url {:body             (-> {:client-id     client-id
-                                                                     :client-secret client-secret
-                                                                     :grant-type    "refresh_token"
-                                                                     :refresh-token refresh-token}
-                                                                    utils/snake-case-keyword-keys
-                                                                    json/write-value-as-string)
-                                              :throw-exceptions false})]
-    (condp = status
-      200 (-> body
-              json/read-value
-              utils/kebab-caseize-keys
-              :access-token)
-      (throw (ex-info (str "Error retrieving authorization-token" {:status status
-                                                                   :body   body}) {})))))
-(defn orchestrate [path-of-file-to-upload]
-  (try
-    (->> (config/refresh-token)
-         authorization-token
-         (upload-file-multipart (config/parent-directory-id) path-of-file-to-upload))
-    (catch Exception e
-      (println e))))
+(def CONFIGURATION
+  {:app         {:command     "google-drive-uploader"
+                 :description "A command-line to generate your google authenticator OTP"
+                 :version     "0.1"}
+   :global-opts [{:option "access-token"
+                  :as     "The access token used to make the request"
+                  :type   :string}
+                 {:option "refresh-token"
+                  :as     "The refresh token to fetch access token in case the later expires"
+                  :type   :string}]
+   :commands    [{:command     "upload-file" :short "uf"
+                  :description ["Upload a file"]
+                  :opts        [{:option "folder" :short "folder" :type :string :default ""}
+                                {:option "file-path" :short "fp" :type :string}
+                                {:option "file-name" :short "fn" :type :string :default (utils/formatted-date-time)}]
+                  :runs        drive/upload-file-to-folder}]})
 
-(defn -main [path-of-file-to-upload & _]
-  (println (str "The path of the file to be uploaded is " path-of-file-to-upload))
-  (orchestrate path-of-file-to-upload))
+(defn -main
+  "This is our entry point.
+  Just pass parameters and configuration.
+  Commands (functions) will be invoked as appropriate."
+  [& args]
+  (run-cmd args CONFIGURATION))
 
