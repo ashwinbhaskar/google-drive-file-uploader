@@ -1,0 +1,4 @@
+{:access-token-validation-url "https://www.googleapis.com/oauth2/v3/tokeninfo?access_token="
+ :file-upload-url "https://www.googleapis.com/upload/drive/v3/files"
+ :get-files-url "https://www.googleapis.com/drive/v3/files"
+ :new-access-token-url "https://accounts.google.com/o/oauth2/token"}
