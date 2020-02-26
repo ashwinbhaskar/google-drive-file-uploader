@@ -1,6 +1,0 @@
-{:refresh-token ""
- :file-upload-url "https://www.googleapis.com/upload/drive/v3/files"
- :file-directory ""
- :new-access-token-url "https://accounts.google.com/o/oauth2/token"
- :client-id ""
- :client-secret ""}
