@@ -1,7 +1,7 @@
 (ns google-drive-file-uploader.drive
   (:require [failjure.core :as f]
             [google-drive-file-uploader.config :as config]
-            [clj-http.lite.client :as http]
+            [clj-http.client :as http]
             [jsonista.core :as json]
             [google-drive-file-uploader.utils :as utils]
             [camel-snake-kebab.core :as csk]))
@@ -32,38 +32,27 @@
    (let [url               (-> (config/file-upload-url)
                                (str "?uploadType=multipart"))
          parents           (clojure.string/split folder-hierarchy #"/")
-         multipart-content (-> [[{:name      "metadata"
-                                  :content   (-> {:name    file-name
-                                                  :parents parents}
-                                                 json/write-value-as-string)
-                                  :mime-type "application/json"
-                                  :encoding  "UTF-8"}]
-                                [{:name      "file"
-                                  :content   (clojure.java.io/file file-path)
-                                  :mime-type "application/vnd.android.package-archive"
-                                  :encoding  "UTF-8"}]]
-                               utils/snake-caseize-and-stringify-keyword)
-         content-length    (-> multipart-content
-                               json/write-value-as-string
-                               .getBytes
-                               count)
-         {:keys [status body] :as response} (http/post url {:headers          {"Authorization"  (str "Bearer " access-token)
-                                                                               "Content-Type"   "multipart/related"
-                                                                               "Content-Length" (str content-length)}
+         multipart-content [{:name      "metadata"
+                             :content   (-> {:name    file-name
+                                             :parents parents}
+                                            json/write-value-as-string)
+                             :mime-type "application/json"
+                             :encoding  "UTF-8"}
+                            {:name      "file"
+                             :content   (clojure.java.io/file file-path)
+                             :mime-type "application/vnd.android.package-archive"
+                             :encoding  "UTF-8"}]
+         {:keys [status body] :as response} (http/post url {:headers          {"Authorization"  (str "Bearer " access-token)}
                                                             :multipart        multipart-content
-                                                            :content-type     :json
-                                                            :accept           :json
                                                             :throw-exceptions false})]
      (println response)
      (condp = status
        200 true
        false))))
 
-(defn authorization-token [refresh-token]
+(defn authorization-token [refresh-token client-id client-secret]
   (println "getting auth token..")
   (let [url           (config/new-access-token-url)
-        client-id     (config/client-id)
-        client-secret (config/client-secret)
         {:keys [status body]} (http/post url {:body             (-> {:client-id     client-id
                                                                      :client-secret client-secret
                                                                      :grant-type    "refresh_token"
@@ -79,19 +68,33 @@
               :access-token)
       (throw (ex-info (str "Error retrieving authorization-token" {:status status
                                                                    :body   body}) {})))))
+(defn valid-access-token? [access-token]
+  (println "Checking validity of access token..")
+  (let [url (str (config/validate-access-token-url)
+                 access-token)
+        {status :status} (http/post url {:throw-exceptions false})]
+    (= 200 status)))
 
-(defn upload-file-to-folder [folder-name file-path file-name]
-  (f/try-all [trimmed-folder-name (clojure.string/trim folder-name)
-              access-token        (authorization-token (config/refresh-token))
+(defn upload-file-to-folder [{:keys [folder
+                                     file-path
+                                     file-name
+                                     access-token
+                                     refresh-token
+                                     client-id
+                                     client-secret]}]
+  (f/try-all [trimmed-folder-name (clojure.string/trim folder)
+              access-token        (if (valid-access-token? access-token)
+                                    access-token
+                                    (authorization-token refresh-token client-id client-secret))
               folder-id           (->> (get-files access-token)
                                        :files
                                        (filter folder?)
                                        (some (fn [{name :name :as e}]
-                                               (if (= trimmed-folder-name name)
+                                               (when (= trimmed-folder-name name)
                                                  e)))
                                        :id)]
     (if (nil? folder-id)
-      (format "Folder %s does not exists" folder-name)
+      (format "Folder %s does not exists" folder)
       (upload-file-multipart folder-id file-path file-name access-token))
     (f/when-failed [e]
       (str e))))
