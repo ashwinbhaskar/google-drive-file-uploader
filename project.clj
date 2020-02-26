@@ -6,8 +6,7 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
 
                  ;;http client
-                 ;;[clj-http "3.10.0"]
-                 [org.martinklepsch/clj-http-lite "0.4.3"]
+                 [clj-http "3.10.0"]
                  ;;json
                  [metosin/jsonista "0.2.4"]
                  [camel-snake-kebab "0.4.0"]
@@ -19,7 +18,9 @@
                  [cli-matic "0.3.11"]
 
                  ;;error handling
-                 [failjure "2.0.0"]]
+                 [failjure "2.0.0"]
+
+                 ;;testing
+                 [mock-clj "0.2.1"]]
   :main google-drive-file-uploader.core
-  :java-source-paths ["java/src"]
   :repl-options {:init-ns google-drive-file-uploader.core})
