@@ -4,19 +4,9 @@ A Clojure library to upload files to google-drive
 
 ## Usage
 
-FIXME
-
-## License
-
-Copyright © 2019 FIXME
-
-This program and the accompanying materials are made available under the
-terms of the Eclipse Public License 2.0 which is available at
-http://www.eclipse.org/legal/epl-2.0.
-
-This Source Code may also be made available under the following Secondary
-Licenses when the conditions for such availability set forth in the Eclipse
-Public License, v. 2.0 are satisfied: GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or (at your
-option) any later version, with the GNU Classpath Exception which is available
-at https://www.gnu.org/software/classpath/license.html.
+Clone the repo and run `lein uberjar`
+Assuming you name the standalone jar file generated as `google-drive-file-uploader.jar`
+```
+java -jar google-drive-file-uploader.jar uf --folder "<name-of-folder-to-upload-to>" --file-path "<full-path-of-file-to-upload>" --file-name "<name of the file that will be shown in drive>" --refresh-token "<refresh-token>" --client-id "<client-id>" --client-secret "<client-secret>"
+```
+will upload your file to google drive to the folder name mentioned in the command line argument.
