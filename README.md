@@ -1,6 +1,6 @@
 # google-drive-file-uploader
 
-A Clojure program to upload files to google-drive
+A Clojure CLI program to upload files to google-drive
 
 ## Usage
 
