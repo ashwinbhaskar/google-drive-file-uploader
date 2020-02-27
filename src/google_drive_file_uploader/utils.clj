@@ -8,15 +8,6 @@
     (csk/->snake_case_keyword x)
     x))
 
-(defn snake-caseize-and-stringify-keyword [map]
-  (postwalk (fn [f]
-              (if (keyword? f)
-                (-> f
-                    name
-                    csk/->snake_case)
-                f))
-            map))
-
 (defn snake-case-keyword-keys [map]
   (postwalk snake-caseize-if-keyword map))
 
