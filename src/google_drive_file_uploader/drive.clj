@@ -104,6 +104,4 @@
                                        :id)]
     (if (nil? folder-id)
       (format "Folder %s does not exists" folder)
-      (upload-file-multipart folder-id file-path file-name access-token))
-    (f/when-failed [e]
-      e)))
+      (upload-file-multipart folder-id file-path file-name access-token))))
