@@ -42,7 +42,7 @@
                              :content   (clojure.java.io/file file-path)
                              :mime-type "application/vnd.android.package-archive"
                              :encoding  "UTF-8"}]
-         {:keys [status body] :as response} (http/post url {:headers          {"Authorization"  (str "Bearer " access-token)}
+         {:keys [status body] :as response} (http/post url {:headers          {"Authorization" (str "Bearer " access-token)}
                                                             :multipart        multipart-content
                                                             :throw-exceptions false})]
      (println response)
@@ -52,7 +52,7 @@
 
 (defn authorization-token [refresh-token client-id client-secret]
   (println "getting auth token..")
-  (let [url           (config/new-access-token-url)
+  (let [url (config/new-access-token-url)
         {:keys [status body]} (http/post url {:body             (-> {:client-id     client-id
                                                                      :client-secret client-secret
                                                                      :grant-type    "refresh_token"
@@ -75,14 +75,23 @@
         {status :status} (http/post url {:throw-exceptions false})]
     (= 200 status)))
 
+(defn- validate [{:keys [access-token refresh-token client-id client-secret] :as m} & _]
+  (cond
+    (and (empty? access-token)
+         (or (empty? refresh-token)
+             (empty? client-id)
+             (empty? client-secret))) (f/fail "Either Access Token or Refresh Token, Client Id and Client Secret must be given")
+    :else nil))
+
 (defn upload-file-to-folder [{:keys [folder
                                      file-path
                                      file-name
                                      access-token
                                      refresh-token
                                      client-id
-                                     client-secret]}]
-  (f/try-all [trimmed-folder-name (clojure.string/trim folder)
+                                     client-secret] :as map}]
+  (f/try-all [_                   (validate map)
+              trimmed-folder-name (clojure.string/trim folder)
               access-token        (if (valid-access-token? access-token)
                                     access-token
                                     (authorization-token refresh-token client-id client-secret))
@@ -97,4 +106,4 @@
       (format "Folder %s does not exists" folder)
       (upload-file-multipart folder-id file-path file-name access-token))
     (f/when-failed [e]
-      (str e))))
+      e)))
