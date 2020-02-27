@@ -1,6 +1,6 @@
-# google-drive-file-uploader
+# google-drive-file-uploader ![Clojure CI](https://github.com/ashwinbhaskar/google-drive-file-uploader/workflows/Clojure%20CI/badge.svg?branch=master)
 
-A Clojure program to upload files to google-drive
+A Clojure CLI program to upload files to google-drive
 
 ## Usage
 
