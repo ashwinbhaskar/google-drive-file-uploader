@@ -7,13 +7,13 @@ A Clojure CLI program to upload files to google-drive
 Clone the repo and run `lein uberjar`
 Assuming you name the standalone jar file generated as `google-drive-file-uploader.jar`
 ```
-java -jar google-drive-file-uploader.jar uf --folder "<name-of-folder-to-upload-to>"
- --file-path "<full-path-of-file-to-upload>"
- --file-name "<name of the file that will be shown in drive>"
- --access-token "<access-token>" //can be ignored if set in env variable GD_ACCESS_TOKEN
- --refresh-token "<refresh-token>" //can be ignored if set in env variable GD_REFRESH_TOKEN
- --client-id "<client-id>" //can be ignored if set in env variable GD_CLIENT_ID
- --client-secret "<client-secret>" //can be ignored if set in env variable GD_CLIENT_SECRET
+java -jar google-drive-file-uploader.jar uf --folder "APKs"
+ --file-path "/users/johndoe/foo.apk"
+ --file-name "foo-debug.apk"
+ --access-token "1//0g5OOBsnCGBASNwF-i4Be9t3ByEpiSha7" //can be ignored if set in env variable GD_ACCESS_TOKEN
+ --refresh-token "1//0g5O1fYfm6BsnCgYIARAAGBASNwF-LNYaJvVVTAkpkbGpG" //can be ignored if set in env variable GD_REFRESH_TOKEN
+ --client-id "806260tdi0.apps.googleusercontent.com" //can be ignored if set in env variable GD_CLIENT_ID
+ --client-secret "12oXYAcp6Vc6BXxMZf20UQEq" //can be ignored if set in env variable GD_CLIENT_SECRET
 ```
 will upload your file to google drive to the folder name mentioned in the command line argument.
 
