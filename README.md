@@ -21,3 +21,17 @@ will upload your file to google drive to the folder name mentioned in the comman
  1. The parameters `access-token`, `refresh-token`, `client-id` and `client-secret` can be set in environment variables `GD_ACCESS_TOKEN`, `GD_REFRESH_TOKEN`, `GD_CLIENT_ID` and `GD_CLIENT_SECRET` respectively.
  2. You can choose to set skip `refresh-token`, `client-id` and `client-secret` if you give a valid `access-token`
  3. If you don't give the `access-token` then `refresh-token`, `client-id` and `client-secret` are mandatory
+ 
+## Docker
+The jar of the program is available as a docker image - https://hub.docker.com/r/ashwinbhskr/google-drive-uploader
+
+As an example, for folks looking to upload their android apk using this program, I have built a 
+docker image using android build box - https://hub.docker.com/r/ashwinbhskr/android-build-box-with-drive-uploader
+
+You can use the above image to upload your apks in your build pipeline.
+```
+ - ./gradlew test
+ - ./gradlew assembleDebug
+ - cd app/build/outputs/apk/debug/
+ - java -jar /drive-uploader.jar uf --folder "Foo APKs" --file-path "app-debug.apk" --file-name "foo.apk"
+```
