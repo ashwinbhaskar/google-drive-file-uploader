@@ -1,7 +1,7 @@
 (ns google-drive-file-uploader.drive
   (:require [failjure.core :as f]
             [google-drive-file-uploader.config :as config]
-            [clj-http.client :as http]
+            [org.httpkit.client :as http]
             [jsonista.core :as json]
             [google-drive-file-uploader.utils :as utils]
             [camel-snake-kebab.core :as csk]))
@@ -17,7 +17,7 @@
 
 (defn get-files [access-token]
   (let [url (config/get-files-url)
-        {:keys [status body] :as response} (http/get url {:headers          {"Authorization" (str "Bearer " access-token)}
+        {:keys [status body] :as response} @(http/get url {:headers          {"Authorization" (str "Bearer " access-token)}
                                                           :throw-exceptions false})]
     (condp = status
       200 (-> body
@@ -42,7 +42,7 @@
                              :content   (clojure.java.io/file file-path)
                              :mime-type "application/vnd.android.package-archive"
                              :encoding  "UTF-8"}]
-         {:keys [status body] :as response} (http/post url {:headers          {"Authorization" (str "Bearer " access-token)}
+         {:keys [status body] :as response} @(http/post url {:headers          {"Authorization" (str "Bearer " access-token)}
                                                             :multipart        multipart-content
                                                             :throw-exceptions false})]
      (println response)
@@ -53,7 +53,7 @@
 (defn authorization-token [refresh-token client-id client-secret]
   (println "getting auth token..")
   (let [url (config/new-access-token-url)
-        {:keys [status body]} (http/post url {:body             (-> {:client-id     client-id
+        {:keys [status body]} @(http/post url {:body             (-> {:client-id     client-id
                                                                      :client-secret client-secret
                                                                      :grant-type    "refresh_token"
                                                                      :refresh-token refresh-token}
@@ -72,7 +72,7 @@
   (println "Checking validity of access token..")
   (let [url (str (config/validate-access-token-url)
                  access-token)
-        {status :status} (http/post url {:throw-exceptions false})]
+        {status :status} @(http/post url {:throw-exceptions false})]
     (= 200 status)))
 
 (defn- validate [{:keys [access-token refresh-token client-id client-secret] :as m} & _]
