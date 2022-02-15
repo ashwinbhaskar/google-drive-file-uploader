@@ -4,21 +4,32 @@
             [clj-http.client :as http]
             [jsonista.core :as json]
             [google-drive-file-uploader.utils :as utils]
-            [camel-snake-kebab.core :as csk]))
+            [camel-snake-kebab.core :as csk])
+  (:import (com.google.api.client.googleapis.auth.oauth2 GoogleCredential)
+           (java.io FileInputStream)))
 
+(defn get-access-token [filename]
+ (.getAccessToken
+  (doto
+      (.createScoped
+       (GoogleCredential/fromStream
+        (FileInputStream. filename))
+       ["https://www.googleapis.com/auth/drive"])
+      (.refreshToken))))
 
 (def mapper
   (json/object-mapper
-    {:encode-key-fn utils/snake-case-keyword-keys
-     :decode-key-fn utils/kebab-caseize-keyword}))
+   {:encode-key-fn utils/snake-case-keyword-keys
+    :decode-key-fn utils/kebab-caseize-keyword}))
 
 (defn- folder? [{mime-type :mime-type}]
   (= "application/vnd.google-apps.folder" mime-type))
 
 (defn get-files [access-token]
   (let [url (config/get-files-url)
-        {:keys [status body] :as response} (http/get url {:headers          {"Authorization" (str "Bearer " access-token)}
-                                                          :throw-exceptions false})]
+        {:keys [status body] :as response}
+        (http/get url {:headers          {"Authorization" (str "Bearer " access-token)}
+                       :throw-exceptions false})]
     (condp = status
       200 (-> body
               (json/read-value mapper))
@@ -75,33 +86,52 @@
         {status :status} (http/post url {:throw-exceptions false})]
     (= 200 status)))
 
-(defn- validate [{:keys [access-token refresh-token client-id client-secret] :as m} & _]
+(defn- validate [{:keys [access-token refresh-token client-id client-secret key-file] :as m} & _]
   (cond
     (and (empty? access-token)
+         (empty? key-file)
          (or (empty? refresh-token)
              (empty? client-id)
              (empty? client-secret))) (f/fail "Either Access Token or Refresh Token, Client Id and Client Secret must be given")
     :else nil))
 
 (defn upload-file-to-folder [{:keys [folder
+                                     folder-id
                                      file-path
                                      file-name
+                                     key-file
                                      access-token
                                      refresh-token
                                      client-id
                                      client-secret] :as map}]
   (f/try-all [_                   (validate map)
-              trimmed-folder-name (clojure.string/trim folder)
-              access-token        (if (valid-access-token? access-token)
-                                    access-token
-                                    (authorization-token refresh-token client-id client-secret))
-              folder-id           (->> (get-files access-token)
-                                       :files
-                                       (filter folder?)
-                                       (some (fn [{name :name :as e}]
-                                               (when (= trimmed-folder-name name)
-                                                 e)))
-                                       :id)]
-    (if (nil? folder-id)
+              access-token        (cond
+                                    (valid-access-token? access-token) access-token
+
+                                    (and refresh-token client-id client-secret)
+                                    (authorization-token refresh-token client-id client-secret)
+
+                                    key-file
+                                    (get-access-token key-file))
+
+              upload-folder-id    (or folder-id
+                                      (->> (get-files access-token)
+                                           :files
+                                           (filter folder?)
+                                           (some (fn [{name :name :as e}]
+                                                   (let [trimmed-folder-name (clojure.string/trim folder)]
+                                                     (when (= trimmed-folder-name name)
+                                                       e))))
+                                           :id))]
+    (if (nil? upload-folder-id)
       (format "Folder %s does not exists" folder)
-      (upload-file-multipart folder-id file-path file-name access-token))))
+      (upload-file-multipart upload-folder-id file-path file-name access-token))))
+
+(comment
+ (upload-file-to-folder
+  {:file-path "project.clj"
+   :file-name "project.clj"
+   :key-file "..."
+   :folder-id "..."
+   })
+ )
