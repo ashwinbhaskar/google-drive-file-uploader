@@ -5,6 +5,8 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
 
+                 [com.google.api-client/google-api-client "1.33.0"]
+
                  ;;http client
                  [clj-http "3.10.0"]
                  ;;json
